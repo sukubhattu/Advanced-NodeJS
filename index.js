@@ -78,6 +78,7 @@ app.use(
 	})
 );
 app.use('/articles', require('./routes/articles'));
+app.use('/users', require('./routes/users'));
 
 // Initialize server
 const port = process.env.port || 3000;

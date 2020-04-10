@@ -33,13 +33,19 @@
                 </ul>
                 <form class="form-inline my-2 my-lg-0">
                     <input class="form-control mr-sm-2" type="text"
-                        placeholder="Developer is lazy to add search" aria-label="Search">
+                        placeholder="Developer is lazy to add search"
+                        aria-label="Search">
                     <button class="btn btn-secondary my-2 my-sm-0"
                         type="submit">Search</button>
                 </form>
             </div>
         </nav>
         <div class="container">
+            {{#if messages}}
+            {{#each type in Object.keys(messages)}}
+
+            {{/each}}
+            {{/if}}
             {{{body}}}
         </div>
 
@@ -59,5 +65,5 @@
         integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
         crossorigin="anonymous">
     </script>
-    
+
 </html>
