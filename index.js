@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const exphbs = require('express-handlebars');
 const path = require('path');
+const expressValidator = require('express-validator');
+const flash = require('connect-flash');
+const session = require('express-session');
 // Initialize app
 const app = express();
 
@@ -31,130 +34,51 @@ db.once('open', () => {
 	console.log('connected to mongodb');
 });
 
-// Bring up the models
-let Article = require('./Models/Article');
+// Expression Session Middleware
+app.use(
+	session({
+		secret: 'my secret',
+		resave: true,
+		saveUninitialized: true,
+		cookie: { secure: true }
+	})
+);
+app.use(flash());
+// Custom flash middleware -- from Ethan Brown's book, 'Web Development with Node & Express'
+app.use(function(req, res, next) {
+	// if there's a flash message in the session request, make it available in the response, then delete it
+	res.locals.sessionFlash = req.session.sessionFlash;
+	delete req.session.sessionFlash;
+	next();
+});
+// Express-messages
+app.use(require('connect-flash')());
+app.use(function(req, res, next) {
+	res.locals.messages = require('express-messages')(req, res);
+	next();
+});
 
-// creating a view
-// GET
-app.get('/articles', (req, res) => {
-	Article.find({}, (err, articles) => {
-		// console.log(articles);
-		if (err) {
-			console.log(err);
-		} else {
-			// if no error
-			// storing that query into another list
-			const articlesCopy = {
-				articles: articles.map((eachArticle) => {
-					return {
-						id: eachArticle.id,
-						title: eachArticle.title,
-						author: eachArticle.author,
-						body: eachArticle.body
-					};
-				})
+// Express Validator Middleware
+app.use(
+	expressValidator({
+		errorFormatter: function(param, msg, value) {
+			var namespace = param.split('.'),
+				root = namespace.shift(),
+				formParam = root;
+
+			while (namespace.length) {
+				formParam += '[' + namespace.shift() + ']';
+			}
+			return {
+				param: formParam,
+				msg: msg,
+				value: value
 			};
-			res.render('articles', {
-				title: 'Articles',
-				articles: articlesCopy.articles
-			});
 		}
-	});
-});
+	})
+);
+app.use('/articles', require('./routes/articles'));
 
-// Fuck to make POST url you have to make GET url
-// let's get started with get url
-app.get('/articles/add', (req, res) => {
-	res.render('add_article', {
-		title: 'Add Article'
-	});
-});
-// POST method
-app.post('/articles/add', (req, res) => {
-	// let's grab data from form
-	let article = new Article();
-	article.title = req.body.title;
-	article.author = req.body.author;
-	article.body = req.body.body;
-	// save this example
-	article.save((err) => {
-		if (err) {
-			console.log(err);
-		} else {
-			res.redirect('/articles');
-		}
-	});
-});
-// GET single article
-app.get('/articles/:id', (req, res) => {
-	Article.findById(req.params.id, (err, article) => {
-		if (err) {
-			console.log(err);
-		} else {
-			let articleCopy = {};
-			articleCopy.id = article._id;
-			articleCopy.title = article.title;
-			articleCopy.author = article.author;
-			articleCopy.body = article.body;
-			res.render('article_detail', {
-				title: 'Article Detail',
-				article: articleCopy
-			});
-		}
-	});
-});
-
-// Update Route GET
-// Update is similar to get single object
-// passing that single item so that
-// the original value is added to the form
-app.get('/articles/:id/edit/', (req, res) => {
-	Article.findById(req.params.id, (err, article) => {
-		if (err) {
-			console.log(err);
-		} else {
-			let articleCopy = {};
-			articleCopy.id = article._id;
-			articleCopy.title = article.title;
-			articleCopy.author = article.author;
-			articleCopy.body = article.body;
-			res.render('article_update', {
-				title: 'Update Article',
-				article: articleCopy
-			});
-		}
-	});
-});
-
-// update Route POST
-app.post('/articles/:id/edit', (req, res) => {
-	let article = {};
-	article.title = req.body.title;
-	article.author = req.body.author;
-	article.body = req.body.body;
-
-	// finding the article to update
-	let query = { _id: req.params.id };
-
-	Article.update(query, article, (err) => {
-		if (err) {
-			console.log(err);
-		} else {
-			res.redirect('/articles/' + req.params.id);
-		}
-	});
-});
-
-// DELETE
-app.get('/articles/:id/delete', (req, res) => {
-	Article.findByIdAndRemove(req.params.id, (err, article) => {
-		if (err) {
-			console.log(err);
-		} else {
-			res.redirect('/articles');
-		}
-	});
-});
 // Initialize server
 const port = process.env.port || 3000;
 app.listen(port, () => {
